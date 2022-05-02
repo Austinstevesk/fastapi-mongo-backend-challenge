@@ -3,7 +3,7 @@ from typing import List
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse, Response
 
-from ..models import ComponentUpdateModel, DeviceModel,  DeviceShowModel
+from ..models import ComponentShowModel, ComponentUpdateAssemblerModel, DeviceModel,  DeviceShowModel
 from ..settings import client
 
 from ..models import ShowUserModel
@@ -24,8 +24,8 @@ router = APIRouter(
 
 
 # update component data to ensure we update the quality, status and location
-@router.put('/update/components/{component_id}', response_model=ComponentUpdateModel, response_description='Update Components: Include quality and status')
-async def update_components(component_id: str, component: ComponentUpdateModel, current_user: ShowUserModel = Depends(get_current_user)):
+@router.put('/update/components/{component_id}', response_model=ComponentShowModel, response_description='Update Components: Include quality and status')
+async def update_components(component_id: str, component: ComponentUpdateAssemblerModel, current_user: ShowUserModel = Depends(get_current_user)):
     if current_user['role'] == 'assembler' or current_user['role'] == 'manager':
         component = {k: v for k,v in component.dict().items() if v is not None}
         if len(component) >= 1:
