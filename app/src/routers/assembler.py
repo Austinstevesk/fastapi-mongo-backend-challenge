@@ -3,7 +3,7 @@ from typing import List
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse, Response
 
-from ..models import ComponentUpdateModel, DeviceModel,  DeviceShowModel
+from ..models import ComponentShowModel, ComponentUpdateAssemblerModel, DeviceModel,  DeviceShowModel
 from ..settings import client
 
 from ..models import ShowUserModel
@@ -24,8 +24,8 @@ router = APIRouter(
 
 
 # update component data to ensure we update the quality, status and location
-@router.put('/update/components/{component_id}', response_model=ComponentUpdateModel, response_description='Update Components: Include quality and status')
-async def update_components(component_id: str, component: ComponentUpdateModel, current_user: ShowUserModel = Depends(get_current_user)):
+@router.put('/update/components/{component_id}', response_model=ComponentShowModel, response_description='Update Components: Include quality and status')
+async def update_components(component_id: str, component: ComponentUpdateAssemblerModel, current_user: ShowUserModel = Depends(get_current_user)):
     if current_user['role'] == 'assembler' or current_user['role'] == 'manager':
         component = {k: v for k,v in component.dict().items() if v is not None}
         if len(component) >= 1:
@@ -47,14 +47,26 @@ async def update_components(component_id: str, component: ComponentUpdateModel, 
 @router.post('/add', response_model=DeviceShowModel, response_description='Create a new device')
 async def create_new_device(device: DeviceModel, current_user: ShowUserModel = Depends(get_current_user)):
     if current_user['role'] == 'assembler' or current_user['role'] == 'manager':
-        component_1 = await producer_db['components'].find_one({'type': device.component_1})
-        component_2 = await producer_db['components'].find_one({'type': device.component_2})
+        component_1 = await producer_db['components'].find_one({'name': device.component_1})
+        component_2 = await producer_db['components'].find_one({'name': device.component_2})
+
         if component_1 is None:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                                detail=f'Component with type {device.component_1} not found')
+                                detail=f'Component with name {device.component_1} not found')
         if component_2 is None:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                                detail=f'Component with type {device.component_2} not found')
+                                detail=f'Component with name {device.component_2} not found')
+
+        allowed_component_1_type_set = {'A', 'C'}
+        allowed_component_2_type_set = {'B', 'C', 'E'}
+        allowed_component_combination = [['A', 'B'], ['C', 'D'], ['A', 'E']]
+
+
+        if (component_1['type'] not in allowed_component_1_type_set and component_2['type'] not in allowed_component_2_type_set):
+            raise HTTPException(status_code=status.HTTP_206_PARTIAL_CONTENT,
+                                detail=f'''Component type combination not allowed. Allowed combination 
+                                is {allowed_component_combination}, got [{component_1['type'], component_2['type']}]''')
+        
         if component_1['quality'] == 'null':
             raise HTTPException(status_code=status.HTTP_206_PARTIAL_CONTENT,
                                 detail=f'Component {device.component_1} has not been reviewed and assigned quality at the assembler')
@@ -66,17 +78,23 @@ async def create_new_device(device: DeviceModel, current_user: ShowUserModel = D
         if component_1['quality'] == 'D' and component_1.type == 'A':
             await producer_db['components'].update_one({'_id': component_1.id}, {'$set': {'status': 'rejected'}})
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
-                                detail=f'Component {device.components[0]} rejected')
+                                detail=f'Component {device.component_1} rejected')
+        if component_2['quality'] == 'D' and component_2.type == 'A':
+            await producer_db['components'].update_one({'_id': component_2.id}, {'$set': {'status': 'rejected'}})
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                                detail=f'Component {device.component_2} rejected')
+
+
         if component_1['quality'] == 'F' and component_2['quality'] == 'F':
             await producer_db['components'].update_one({'_id': component_2.id}, {'$set': {'status': 'rejected'}})
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                                 detail=f'Both components rejected')
-        if component_1 == "A" and component_2 == "B":
+        if component_1 == "A" and component_2 == "B" or component_2 == "A" and component_1 == "B":
             device.name = 'D1'
-        if component_1 == "C" and component_2 == "D":
+        if component_1 == "C" and component_2 == "D" or component_2 == "C" and component_1 == "D":
             device.name = 'D2'
 
-        if component_1 == "A" and component_2 == "E":
+        if component_1 == "A" and component_2 == "E" or component_2 == "A" and component_1 == "E":
             device.name = 'D3'
 
 

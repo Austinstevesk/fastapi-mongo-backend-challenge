@@ -185,10 +185,63 @@ class ComponentModel(BaseModel):
         return status
 
 
-# model/schema to update the existing components; we need this at the assembler to change status and quality
-class ComponentUpdateModel(BaseModel):
+
+# component update at producer
+class ComponentUpdateProducerModel(BaseModel):
     id: PyObjectId = Field(default_factory=PyObjectId, alias="_id")
-    name: Optional[str]
+    type: Optional[str]
+    quality: Optional[str]
+    status: Optional[str]
+    location: Optional[str]
+
+    class Config:
+        json_encoders = {ObjectId: str}
+        arbitrary_types_allowed = True
+        schema_extra = {
+            "example": {
+                "type": "A",
+                "quality": "null",
+                "status": "manufactured",
+                "location": "producer",
+            }
+        }
+
+    # validate type of component
+    @validator('type')
+    def type_is_valid(cls, component_type: Optional[str]) -> Optional[str]:
+        allowed_set = {'A', 'B', 'C', 'D', 'E'}
+        if component_type not in allowed_set:
+            raise ValueError(f'Component type must be in {allowed_set}, got {component_type}')
+        return component_type
+
+    # validate location of component
+    @validator('location')
+    def location_is_valid(cls, location: Optional[str]) -> Optional[str]:
+        if location != 'producer':
+            raise ValueError(f'Location must be producer got {location}')
+        return location
+    
+    # validate quality, set to null at producer then updated at assembler
+    @validator('quality')
+    def quality_is_valid(cls, quality: Optional[str]) -> Optional[str]:
+        if quality != 'null':
+            raise ValueError(f'Quality must be null, got {quality}')
+        return quality
+    
+    # validate status of the of the component
+    @validator('status')
+    def status_is_valid(cls, status: Optional[str]) -> Optional[str]:
+        allowed_set = {'manufactured', 'reviewed'}
+        if status not in allowed_set:
+            raise ValueError(f'Status must be in {allowed_set}, got {status}')
+        return status
+
+
+
+
+# model/schema to update the existing components; we need this at the assembler to change status and quality
+class ComponentUpdateAssemblerModel(BaseModel):
+    id: PyObjectId = Field(default_factory=PyObjectId, alias="_id")
     type: Optional[str]
     quality: Optional[str]
     status: Optional[str]
@@ -199,7 +252,6 @@ class ComponentUpdateModel(BaseModel):
         arbitrary_types_allowed = True
         schema_extra = {
             "example": {
-                "name": "C1",
                 "type": "A",
                 "quality": "A",
                 "status": "assembled",
@@ -278,25 +330,25 @@ class DeviceModel(BaseModel):
         schema_extra = {
             "example": {
                 "name": "D1",
-                "component_1": "A",
-                "component_2": "B"
+                "component_1": "C1",
+                "component_2": "C2"
             }
         }
     # validate data given as the first component
-    @validator('component_1')
-    def component_1_is_valid(cls, component_1: Optional[str]) -> Optional[str]:
-        allowed_set = {'A', 'C'}
-        if component_1 not in allowed_set:
-            raise ValueError(f'component_1 must be in {allowed_set}, got {component_1}')
-        return component_1
+    # @validator('component_1')
+    # def component_1_is_valid(cls, component_1: Optional[str]) -> Optional[str]:
+    #     allowed_set = {'A', 'C'}
+    #     if component_1 not in allowed_set:
+    #         raise ValueError(f'component_1 must be in {allowed_set}, got {component_1}')
+    #     return component_1
     
-    # validate data given as the second component
-    @validator('component_2')
-    def component_2_is_valid(cls, component_2: Optional[str]) -> Optional[str]:
-        allowed_set = {'B', 'C', 'E'}
-        if component_2 not in allowed_set:
-            raise ValueError(f'component_2 must be in {allowed_set}, got {component_2}')
-        return component_2
+    # # validate data given as the second component
+    # @validator('component_2')
+    # def component_2_is_valid(cls, component_2: Optional[str]) -> Optional[str]:
+    #     allowed_set = {'B', 'C', 'E'}
+    #     if component_2 not in allowed_set:
+    #         raise ValueError(f'component_2 must be in {allowed_set}, got {component_2}')
+    #     return component_2
 
 
 
@@ -312,8 +364,8 @@ class DeviceShowModel(BaseModel):
         schema_extra = {
             "example": {
                 "name": "D1",
-                "component_1": "A",
-                "component_2": "B"
+                "component_1": "C1",
+                "component_2": "C2"
             }
         }
     

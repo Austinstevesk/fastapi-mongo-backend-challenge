@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, status, HTTPException
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse, Response
-from ..models import ComponentModel, ComponentShowModel
+from ..models import ComponentModel, ComponentShowModel, ComponentUpdateProducerModel
 from ..settings import client
 from typing import List
 
@@ -21,7 +21,10 @@ router = APIRouter(
 @router.post('/add', response_description='Add a new component')
 async def create_new_component(component: ComponentModel, current_user: ShowUserModel = Depends(get_current_user)):
     if current_user['role'] == 'producer' or current_user['role'] == 'manager':
+
+        # we want our component_name to be unique thus we use the count of documents to get the next component name
         component_count = await db.components.count_documents({})
+        # we append C to the str(count) to build the entire component name
         component_name = 'C'+str(component_count + 1)
         component.name = component_name
         encoded_component = jsonable_encoder(component)
@@ -43,7 +46,7 @@ async def list_all_components(current_user: ShowUserModel = Depends(get_current_
 
 # update a component based on the specific id
 @router.put('/update/{component_id}', response_description='Modify Existing Component Data', response_model=ComponentShowModel)
-async def modify_component_data(component_id: str, component: ComponentModel, current_user: ShowUserModel = Depends(get_current_user)):
+async def modify_component_data(component_id: str, component: ComponentUpdateProducerModel, current_user: ShowUserModel = Depends(get_current_user)):
     if current_user['role'] == 'producer' or current_user['role'] == 'manager':
         component = {k: v for k,v in component.dict().items() if v is not None}
         if len(component) >= 1:
