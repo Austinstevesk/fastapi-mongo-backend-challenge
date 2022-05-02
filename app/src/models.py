@@ -278,25 +278,25 @@ class DeviceModel(BaseModel):
         schema_extra = {
             "example": {
                 "name": "D1",
-                "component_1": "A",
-                "component_2": "B"
+                "component_1": "C1",
+                "component_2": "C2"
             }
         }
     # validate data given as the first component
-    @validator('component_1')
-    def component_1_is_valid(cls, component_1: Optional[str]) -> Optional[str]:
-        allowed_set = {'A', 'C'}
-        if component_1 not in allowed_set:
-            raise ValueError(f'component_1 must be in {allowed_set}, got {component_1}')
-        return component_1
+    # @validator('component_1')
+    # def component_1_is_valid(cls, component_1: Optional[str]) -> Optional[str]:
+    #     allowed_set = {'A', 'C'}
+    #     if component_1 not in allowed_set:
+    #         raise ValueError(f'component_1 must be in {allowed_set}, got {component_1}')
+    #     return component_1
     
-    # validate data given as the second component
-    @validator('component_2')
-    def component_2_is_valid(cls, component_2: Optional[str]) -> Optional[str]:
-        allowed_set = {'B', 'C', 'E'}
-        if component_2 not in allowed_set:
-            raise ValueError(f'component_2 must be in {allowed_set}, got {component_2}')
-        return component_2
+    # # validate data given as the second component
+    # @validator('component_2')
+    # def component_2_is_valid(cls, component_2: Optional[str]) -> Optional[str]:
+    #     allowed_set = {'B', 'C', 'E'}
+    #     if component_2 not in allowed_set:
+    #         raise ValueError(f'component_2 must be in {allowed_set}, got {component_2}')
+    #     return component_2
 
 
 
@@ -312,8 +312,8 @@ class DeviceShowModel(BaseModel):
         schema_extra = {
             "example": {
                 "name": "D1",
-                "component_1": "A",
-                "component_2": "B"
+                "component_1": "C1",
+                "component_2": "C2"
             }
         }
     
